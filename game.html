@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Glory of Compound Interest Game (v4)</title>
+    <style>
+        /* CSS Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            color: #061A34;
+            text-align: center;
+        }
+
+        /* --- NAVIGATION STYLES ADDED HERE --- */
+        .main-nav {
+            background-color: #061A34; /* Dark background */
+            padding: 10px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .main-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            gap: 30px; /* Spacing between links */
+        }
+
+        .main-nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .main-nav a:hover {
+            background-color: #C83803; /* Orange/Red accent on hover */
+        }
+        /* ------------------------------------- */
+
+        .game-container {
+            padding: 20px;
+            margin: 0 auto; /* Removed top margin due to fixed nav bar */
+            max-width: 800px;
+            background-color: #f7f7f7;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #061A34;
+        }
+        h1 {
+            border-bottom: 2px solid #C83803;
+            padding-bottom: 10px;
+        }
+        .balance-display {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #046A38;
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: white;
+        }
+        .rate-display {
+            font-size: 1.2em;
+            margin: 10px 0;
+            color: #C83803;
+        }
+        /* Style for interactive buttons */
+        .controls button, #challengeArea button, #gameUI button {
+            background-color: #061A34;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        .controls button:hover, #challengeArea button:hover, #gameUI button:hover {
+            background-color: #C83803;
+            transform: translateY(-1px);
+        }
+        
+        /* Input styling */
+        input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-right: 10px;
+            width: 150px;
+            text-align: center;
+        }
+
+        /* Graph Canvas */
+        #compoundChart {
+            border: 1px solid #061A34;
+            margin-top: 20px;
+            background-color: white;
+            border-radius: 4px;
+        }
+        
+        /* List is kept for history tracking */
+        .progress-list {
+            list-style: none;
+            padding: 0;
+            max-height: 150px; 
+            overflow-y: auto; 
+            margin-top: 20px;
+            border: 1px solid #eee;
+            text-align: left;
+            background-color: white;
+            border-radius: 4px;
+        }
+        .progress-list li {
+            padding: 5px 15px;
+            border-bottom: 1px dashed #eee;
+            font-size: 0.9em;
+        }
+        #challengeResults {
+            display: none; 
+            margin-top: 20px; 
+            padding: 10px; 
+            border: 1px dashed #061A34; 
+            background-color: #e9e9e9; 
+            border-radius: 4px;
+        }
+        #nextChallengeBtn {
+            display: none;
+            margin-top: 10px;
+            background-color: #046A38; /* Green button */
+        }
+        #submitGuessBtn {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- 1. NAVIGATION BAR -->
+    <nav class="main-nav">
+        <ul>
+            <li><a href="index.html">About</a></li>
+            <li><a href="resume.html">Resume</a></li>
+            <li><a href="scratch.html">Bear Down Tribute</a></li>
+        </ul>
+    </nav>
+    <!-- END NAVIGATION BAR -->
+
+    <div class="game-container">
+        <h1>The Glory of Compound Interest</h1>
+        
+        <!-- Score Display -->
+        <div style="margin-bottom: 20px; padding: 10px; border: 1px dashed #C83803;">
+            <h3>Current Score: <span id="scoreDisplay" style="color: #C83803; font-size: 1.5em;">0</span> points</h3>
+        </div>
+
+        <!-- 🎯 Gamification Challenge Section -->
+        <h2>🎯 Compound Interest Challenge</h2>
+        <div id="challengeArea">
+            <button onclick="startChallenge()">Start New Challenge</button>
+        </div>
+        <div id="gameUI" style="display: none; margin-top: 15px; padding-top: 15px;">
+            <p><strong>Challenge:</strong> What is the balance after <span id="challengePeriods"></span> periods at an annualized rate of <span id="challengeRate"></span>?</p>
+            <label for="guess">Your Guess ($):</label>
+            <input type="number" id="guess" step="0.01" min="1.00" placeholder="e.g., 1.50">
+            
+            <button id="submitGuessBtn" onclick="checkGuess()">Submit Guess</button>
+            
+            <p id="feedback" style="font-weight: bold; margin-top: 10px;"></p>
+            
+            <!-- Area for post-guess results -->
+            <div id="challengeResults">
+                <h4>Challenge Results:</h4>
+                <p>Parameters: <span id="resultRate"></span> over <span id="resultPeriods"></span> periods.</p>
+                <p>True Final Balance: <span id="resultAnswer" style="font-weight: bold; color: #046A38;"></span></p>
+                <button onclick="visualizeChallenge()" style="background-color: #C83803;">Show Challenge Growth on Graph</button>
+            </div>
+            <button id="nextChallengeBtn" onclick="resetChallenge()">Start Next Challenge</button>
+        </div>
+        
+        <!-- Visualization Section -->
+        <h2 style="margin-top: 40px;">🧪 Compound Visualization Lab</h2>
+
+        <!-- Balance & Rate Display -->
+        <div class="balance-display" id="balanceDisplay">$1.00</div>
+        <div class="rate-display">
+            Current Annualized Return: <span id="rateDisplay">1%</span>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button onclick="toggleRate()">Toggle Interest Rate</button>
+            <button onclick="compound()">Click for 1 Compounding Period</button>
+        </div>
+        
+        <!-- Graph Section -->
+        <div class="graph-section">
+            <canvas id="compoundChart" width="750" height="300"></canvas>
+        </div>
+
+        <!-- Progress History List -->
+        <h3>Progress History</h3>
+        <ul class="progress-list" id="progressList">
+            <li>Period 0: $1.00 (1% rate)</li>
+        </ul>
+
+    </div>
+
+    <script>
+        // --- GAME VARIABLES ---
+        let balance = 1.00;
+        let periods = 0;
+        const rates = [0.01, 0.03, 0.05, 0.10, 0.20];
+        let currentRateIndex = 0;
+        const history = [{ period: 0, balance: 1.00 }]; // Array to store all points for the graph
+        
+        // Gamification Variables
+        let score = 0;
+        let challenge = null; // Stores { rate, periods, answer }
+
+        // --- DOM Elements ---
+        const balanceDisplay = document.getElementById('balanceDisplay');
+        const rateDisplay = document.getElementById('rateDisplay');
+        const progressList = document.getElementById('progressList');
+        const canvas = document.getElementById('compoundChart');
+        const ctx = canvas.getContext('2d');
+        const CANVAS_WIDTH = 750;
+        const CANVAS_HEIGHT = 300;
+        const MARGIN = 30; // Margin for axes labels
+
+        // Gamification DOM
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const challengeArea = document.getElementById('challengeArea');
+        const gameUI = document.getElementById('gameUI');
+        const challengePeriodsDisplay = document.getElementById('challengePeriods');
+        const challengeRateDisplay = document.getElementById('challengeRate');
+        const guessInput = document.getElementById('guess');
+        const feedbackDisplay = document.getElementById('feedback');
+        
+        // NEW DOM elements for results
+        const challengeResults = document.getElementById('challengeResults');
+        const resultRateDisplay = document.getElementById('resultRate');
+        const resultPeriodsDisplay = document.getElementById('resultPeriods');
+        const resultAnswerDisplay = document.getElementById('resultAnswer');
+        const nextChallengeBtn = document.getElementById('nextChallengeBtn');
+        const submitGuessBtn = document.getElementById('submitGuessBtn');
+
+        // --- DRAWING FUNCTION (Main Lab) ---
+        function drawChart() {
+            // Draws the chart for the 'Visualization Lab' using the 'history' array
+            drawCustomChart(history, '#C83803', 3, [], false);
+        }
+        
+        /**
+         * Draws a chart based on provided data and style parameters.
+         * @param {Array<Object>} dataHistory - Array of {period, balance} objects.
+         * @param {string} color - Line color.
+         * @param {number} lineWidth - Line thickness.
+         * @param {Array<number>} lineDash - Line dash pattern (e.g., [5, 5] for dashed).
+         * @param {boolean} isChallenge - If true, uses challenge-specific styling.
+         */
+        function drawCustomChart(dataHistory, color, lineWidth, lineDash, isChallenge) {
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            
+            const chartWidth = CANVAS_WIDTH - 2 * MARGIN;
+            const chartHeight = CANVAS_HEIGHT - 2 * MARGIN;
+            const xOffset = MARGIN;
+            const yOffset = CANVAS_HEIGHT - MARGIN;
+
+            const maxBalance = Math.max(...dataHistory.map(item => item.balance), 1);
+            const yMax = maxBalance > 10 ? maxBalance * 1.1 : 10;
+            const xMax = dataHistory.length > 10 ? dataHistory.length + 2 : 10;
+
+            // Draw Axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(xOffset, yOffset);
+            ctx.lineTo(xOffset + chartWidth, yOffset);
+            ctx.moveTo(xOffset, yOffset);
+            ctx.lineTo(xOffset, MARGIN);
+            ctx.stroke();
+
+            // Draw Labels (simplified)
+            ctx.fillStyle = '#333';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('Compounding Periods', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 15);
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Dollars', 15, CANVAS_HEIGHT / 2);
+
+            // Draw Y-axis ticks
+            for (let i = 0; i <= 5; i++) {
+                const yValue = (yMax / 5) * i;
+                const yPos = yOffset - (yValue / yMax) * chartHeight;
+                ctx.beginPath();
+                ctx.moveTo(xOffset - 5, yPos);
+                ctx.lineTo(xOffset + 5, yPos);
+                ctx.stroke();
+                ctx.textAlign = 'right';
+                ctx.fillText('$' + yValue.toFixed(2), xOffset - 10, yPos);
+            }
+
+            // Draw Data Line and Points
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.setLineDash(lineDash);
+            ctx.beginPath();
+            
+            const xStep = chartWidth / xMax;
+            
+            dataHistory.forEach((data, index) => {
+                const x = xOffset + data.period * xStep;
+                const y = yOffset - (data.balance / yMax) * chartHeight;
+
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+
+                // Draw Data Point (Circle)
+                ctx.fillStyle = isChallenge ? '#C83803' : '#061A34';
+                ctx.beginPath();
+                ctx.arc(x, y, isChallenge ? 5 : 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset line dash
+        }
+
+
+        // --- GAME FUNCTIONS (Visualization Lab) ---
+
+        function toggleRate() {
+            currentRateIndex = (currentRateIndex + 1) % rates.length;
+            const rate = rates[currentRateIndex];
+            rateDisplay.textContent = (rate * 100).toFixed(0) + '%';
+        }
+
+        function compound() {
+            periods++;
+            const rate = rates[currentRateIndex];
+            balance = balance * (1 + rate);
+            
+            history.push({ period: periods, balance: balance });
+            
+            const formattedBalance = balance.toFixed(2);
+            balanceDisplay.textContent = '$' + formattedBalance;
+
+            // Update list history
+            const listItem = document.createElement('li');
+            listItem.textContent = `Period ${periods}: $${formattedBalance} (${(rate * 100).toFixed(0)}% rate)`;
+            progressList.appendChild(listItem);
+            progressList.scrollTop = progressList.scrollHeight;
+            
+            // Re-draw the chart
+            drawChart();
+        }
+        
+        // --- GAMIFICATION FUNCTIONS ---
+
+        /**
+         * Starts a new guessing challenge.
+         */
+        function startChallenge() {
+            // 1. Reset UI elements
+            challengeResults.style.display = 'none';
+            nextChallengeBtn.style.display = 'none';
+            submitGuessBtn.style.display = 'inline-block';
+            feedbackDisplay.textContent = '';
+            guessInput.value = '';
+            
+            // 2. Pick random parameters
+            const rateIndex = Math.floor(Math.random() * rates.length);
+            const rate = rates[rateIndex];
+            const ratePercent = (rate * 100).toFixed(0) + '%';
+            
+            const periodsX = Math.floor(Math.random() * (15 - 5 + 1)) + 5;
+
+            // 3. Calculate the true answer: A = P(1 + r)^n, P=1
+            const trueAnswer = Math.pow(1 + rate, periodsX);
+
+            // Store the challenge state
+            challenge = { rate: rate, periods: periodsX, answer: trueAnswer };
+
+            // 4. Update UI
+            challengePeriodsDisplay.textContent = periodsX;
+            challengeRateDisplay.textContent = ratePercent;
+            
+            challengeArea.style.display = 'none';
+            gameUI.style.display = 'block';
+            guessInput.focus();
+        }
+
+        /**
+         * Checks the user's guess against the true compounded amount and calculates score.
+         */
+        function checkGuess() {
+            if (!challenge) {
+                feedbackDisplay.textContent = "Please start a challenge first!";
+                return;
+            }
+
+            const userGuess = parseFloat(guessInput.value);
+            if (isNaN(userGuess) || userGuess < 1.00) {
+                feedbackDisplay.textContent = "Please enter a valid guess (must be $1.00 or more).";
+                return;
+            }
+
+            const trueAnswer = challenge.answer;
+            const difference = Math.abs(userGuess - trueAnswer);
+            const percentageDifference = difference / trueAnswer;
+            
+            const basePoints = 10;
+            const maxBonusPoints = 90;
+            const maxPenaltyDiff = 1.0; // If difference is 100% or more, bonus points are 0.
+
+            // 1. Calculate Bonus Points (based on accuracy)
+            const accuracyFactor = Math.max(0, 1 - Math.min(percentageDifference, maxPenaltyDiff));
+            
+            const bonusPoints = Math.round(maxBonusPoints * accuracyFactor);
+            const points = basePoints + bonusPoints;
+
+            score += points;
+            
+            // 2. Prepare Feedback Text
+            let feedbackText = `You earned ${points} points! `;
+            
+            if (percentageDifference <= 0.005) {
+                feedbackText = `🔥 PERFECT GUESS! Off by only $${difference.toFixed(2)}. ${feedbackText}`;
+            } else if (percentageDifference <= 0.05) {
+                feedbackText = `🎯 GREAT GUESS! You were very close. ${feedbackText}`;
+            } else {
+                feedbackText = `🤔 You were off by $${difference.toFixed(2)}. ${feedbackText}`;
+            }
+            
+            // 3. Update UI
+            scoreDisplay.textContent = score;
+            feedbackDisplay.textContent = feedbackText;
+
+            // Display results area
+            resultRateDisplay.textContent = (challenge.rate * 100).toFixed(0) + '%';
+            resultPeriodsDisplay.textContent = challenge.periods;
+            resultAnswerDisplay.textContent = '$' + trueAnswer.toFixed(2);
+            challengeResults.style.display = 'block';
+            nextChallengeBtn.style.display = 'block';
+            submitGuessBtn.style.display = 'none'; 
+        }
+
+        /**
+         * Resets the challenge UI and starts a new challenge.
+         */
+        function resetChallenge() {
+            challenge = null;
+            // Restore main visualization lab chart
+            drawChart(); 
+            startChallenge();
+        }
+
+        /**
+         * Calculates and visualizes the compound growth for the current challenge parameters.
+         */
+        function visualizeChallenge() {
+            if (!challenge) return;
+
+            const { rate, periods: numPeriods } = challenge;
+            const challengeHistory = [];
+            let currentBalance = 1.00;
+
+            // Generate history data points
+            challengeHistory.push({ period: 0, balance: 1.00 });
+            for (let p = 1; p <= numPeriods; p++) {
+                currentBalance = currentBalance * (1 + rate);
+                challengeHistory.push({ period: p, balance: currentBalance });
+            }
+
+            // Draw the challenge history with distinctive styling (dashed green line)
+            drawCustomChart(challengeHistory, '#046A38', 4, [6, 4], true); 
+            
+            // Update feedback to inform the user about the chart change
+            feedbackDisplay.textContent += " (Check the chart below for the actual growth path! Click 'Start Next Challenge' to reset the view.)";
+        }
+        
+        // Initial drawing when the page loads
+        drawChart();
+
+    </script>
+
+</body>
+</html>
